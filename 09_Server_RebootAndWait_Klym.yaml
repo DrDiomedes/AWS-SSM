@@ -1,0 +1,27 @@
+---
+
+- name: Reiniciar Server y esperar - INFRAESTRUCTURA KLYM -                      # Nombre del playbook
+  hosts: localhost                                             # Lista de hosts a los que se aplicará este playbook
+  tasks:                                                                         # Lista de tareas que se deben ejecutar en cada host
+    - name: Reiniciar la máquina                                                 # Descripción de la tarea: reinicia la máquina utilizando el comando shell /sbin/reboot
+      shell: /sbin/reboot
+      async: 1                                                                   # Ejecuta el comando de forma asíncrona (en segundo plano)
+      poll: 0                                                                    # No espera a que el comando finalice antes de continuar
+      become: true                                                               # Usa privilegios de root para ejecutar esta tarea
+
+    - name: Esperar 30 segundos                                                 # Descripción de la tarea: espera 30 segundos antes de continuar con las siguientes tareas
+      pause:
+        seconds: 30
+
+    - name: Verificar si la máquina se ha reiniciado                            # Descripción de la tarea: espera hasta que la conexión con la máquina se haya restablecido antes de continuar
+      wait_for_connection:
+        delay: 10                                                               # Espera 10 segundos antes de verificar si la conexión se ha restablecido
+        timeout: 300                                                            # Espera hasta 300 segundos (5 minutos) antes de que la tarea falle
+
+    - name: Imprimir mensaje de reinicio exitoso                                # Descripción de la tarea: muestra un mensaje indicando que la máquina se ha reiniciado correctamente
+      debug:
+        msg: "El servidor ha reiniciado y está disponible"
+
+    - name: Esperar 30 segundos                                                 # Descripción de la tarea: espera 30 segundos antes de terminar el playbook
+      pause:
+        seconds: 30

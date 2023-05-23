@@ -1,0 +1,14 @@
+---
+
+- name: Identificar versión de GitLab
+  hosts: localhost
+  become: yes                                                                  # habilita el modo "become" para ejecutar comandos como superusuario
+
+  tasks:
+  - name: Ejecutar comando
+    shell: sudo gitlab-rake gitlab:env:info                                     # ejecuta el comando para obtener información del entorno de GitLab
+    register: env_info                                                          # registra la salida del comando en una variable
+
+  - name: Mostrar versión de entorno de GitLab
+    debug:
+      var: env_info.stdout_lines                                                # muestra la salida del comando en la consola de Ansible

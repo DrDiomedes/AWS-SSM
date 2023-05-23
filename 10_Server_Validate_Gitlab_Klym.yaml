@@ -1,0 +1,20 @@
+---
+
+- name: Verificar instalación de GitLab - INFRAESTRUCTURA KLYM -
+  hosts: localhost
+  gather_facts: yes                                                              # recopila información sobre los hosts antes de ejecutar tareas
+
+  tasks:
+    - name: Verificar que GitLab esté instalado
+      shell: gitlab-ctl status                                                   # ejecuta el comando para comprobar el estado de GitLab
+      register: gitlab_status                                                    # registra el resultado de la ejecución en una variable
+      ignore_errors: true                                                        # no detiene la ejecución si el comando retorna un código de error
+
+    - name: Mostrar mensaje de éxito si GitLab está instalado y corriendo
+      debug:
+        msg: "GitLab está instalado y corriendo con éxito"                       # muestra un mensaje de éxito en la salida
+      vars:
+        success_msg: "run: gitlab-workhorse: (pid "                              # define una variable con el mensaje de éxito a buscar
+        success_when: "'{{ success_msg }}' in gitlab_status.stdout_lines"        # define una condición de éxito basada en la presencia del mensaje en la salida
+      changed_when: false                                                        # no marca la tarea como "cambiada" si se ejecuta correctamente
+      when: success_when                                                         # solo se ejecuta si se cumple la condición de éxito definida

@@ -1,0 +1,44 @@
+---
+
+- name: Actualizar GitLab a la última versión - INFRAESTRUCTURA KLYM -
+  hosts: localhost                                             # define los hosts en los que se ejecutará el playbook
+  become: yes                                                                    # permite que el usuario se convierta en root para ejecutar tareas que requieren permisos de administrador
+
+  tasks:
+    - name: Actualizar paquetes
+      apt:                                                                       # módulo de Ansible para manejar paquetes en sistemas Debian/Ubuntu
+        update_cache: yes                                                        # actualiza la caché de paquetes
+      changed_when: false                                                        # no considera la tarea como cambiada si no hay actualizaciones para instalar
+
+    - name: Comprobar si hay actualizaciones de GitLab
+      shell: apt-cache policy gitlab-ee | grep Candidate | awk '{print $2}'      # ejecuta un comando shell para obtener la última versión disponible de GitLab
+      register: gitlab_version_available                                         # guarda la salida del comando en una variable para su uso posterior
+      changed_when: false                                                        # no considera la tarea como cambiada si no hay actualizaciones disponibles
+
+    - name: Obtener la versión actual de GitLab
+      shell: dpkg -s gitlab-ee | grep Version | awk '{print $2}'                 # ejecuta un comando shell para obtener la versión actual de GitLab
+      register: gitlab_version_current                                           # guarda la salida del comando en una variable para su uso posterior
+      changed_when: false                                                        # no considera la tarea como cambiada si no se produce ningún cambio
+
+    - name: Instalar actualización de GitLab si está disponible
+      apt:                                                                       # módulo de Ansible para manejar paquetes en sistemas Debian/Ubuntu
+        name: gitlab-ee={{ gitlab_version_available.stdout }}                    # especifica el nombre del paquete a actualizar con la última versión disponible
+        state: latest                                                            # instala la última versión disponible del paquete
+      register: update_result                                                    # guarda la salida del comando en una variable para su uso posterior
+      when: gitlab_version_available.stdout != gitlab_version_current.stdout     # solo se ejecuta si hay una actualización disponible
+
+    - name: Reiniciar GitLab si se ha actualizado
+      systemd:                                                                   # módulo de Ansible para manejar servicios de systemd
+        name: gitlab-runsvdir.service                                            # especifica el nombre del servicio a reiniciar
+        state: restarted                                                         # reinicia el servicio si se ha actualizado
+      when: update_result.changed                                                # solo se ejecuta si se ha actualizado GitLab
+
+    - name: Mostrar mensaje de actualización
+      debug:                                                                     # módulo de Ansible para mostrar mensajes de depuración
+        msg: "Se actualiza GitLab a la versión {{ gitlab_version_available.stdout }}."            # muestra el mensaje de actualización
+      when: update_result.changed                                                # solo se ejecuta si se ha actualizado GitLab
+
+    - name: Mostrar mensaje de no hay actualización
+      debug:                                                                     # módulo de Ansible para mostrar mensajes de depuración
+        msg: "No hay versiones de GitLab nuevas para actualizar."                # muestra el mensaje de que no hay actualizaciones disponibles
+      when: gitlab_version_available.stdout == gitlab_version_current.stdout     # solo se ejecuta si no hay actualizaciones disponibles
